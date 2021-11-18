@@ -1,0 +1,2 @@
+start front.MOV +00:00:00:03
+end side.MOV -00:00:00:01 
