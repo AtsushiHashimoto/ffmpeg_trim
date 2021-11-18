@@ -8,8 +8,8 @@ Trim video files
 
 # The format of trim.txt
 ```
-start front.MOV +00:00:03
-end side.MOV -00:00:01
+start front.MOV +00:00:00.03
+end side.MOV -00:00:00.01
 ```
 
 - 1行目: start 動画ファイル +hh:mm:ss.nnn
