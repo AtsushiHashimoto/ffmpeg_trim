@@ -105,6 +105,30 @@ for base in "front" "side"; do
     b_ss=$(time2sec $side_end)
   fi
   t=$(echo "scale=6; $duration - $f_ss - $b_ss" | bc)
-  command="ffmpeg -ss $f_ss -i '$dir/${base}.${MOV_EXT}' -t $t -c copy '$dir/${base}_trimed.${MOV_EXT}'"
+  command="ffmpeg -y -ss $f_ss -i '$dir/${base}.${MOV_EXT}' -t $t -c copy '$dir/${base}_trimed.${MOV_EXT}' > '$dir/${base}_trimed.log' 2>&1"
+  echo $command
+
+  # H265, speed=0.228x, size 1/6
+  command="ffmpeg -y -i '$dir/${base}_trimed.${MOV_EXT}' -vcodec libx265 '$dir/${base}_compressed_h265.mp4' > '$dir/${base}_compressed_h265.log' 2>&1"
+  echo $command
+
+  # H265, scale 640x???, speed=0.78x, size 1/18
+  command="ffmpeg -y -i '$dir/${base}_trimed.${MOV_EXT}' -vcodec libx265 -vf scale=640:-2 '$dir/${base}_compressed_h265_w640.mp4' > '$dir/${base}_compressed_h265_w640.log' 2>&1"
+  echo $command
+
+  # H265, crf 34, speed=0.42x,size 1/20
+  command="ffmpeg -y -i '$dir/${base}_trimed.${MOV_EXT}' -vcodec libx265 -crf 34 '$dir/${base}_compressed_h265_cfr34.mp4' > '$dir/${base}_compressed_h265_cfr34.log' 2>&1"
+  echo $command
+
+  # H265, crf 34, scale 640x???, speed=1.15x, size 1/36
+  command="ffmpeg -y -i '$dir/${base}_trimed.${MOV_EXT}' -vcodec libx265 -crf 34 -vf scale=640:-2 '$dir/${base}_compressed_h265_crf34_w640.mp4' > '$dir/${base}_compressed_h265_cfr34_w640.log' 2>&1"
+  echo $command
+
+  # H265, crf 40, speed=0.48x, 1/36
+  command="ffmpeg -y -i '$dir/${base}_trimed.${MOV_EXT}' -vcodec libx265 -crf 40 '$dir/${base}_compressed_h265_cfr40.mp4' > '$dir/${base}_compressed_h265_cfr40.log' 2>&1"
+  echo $command
+
+  # H265, crf 40, scale 640x???, speed=1.14x, size 1/50
+  command="ffmpeg -y -i '$dir/${base}_trimed.${MOV_EXT}' -vcodec libx265 -crf 40 -vf scale=640:-2 '$dir/${base}_compressed_h265_crf40_w640.mp4' > '$dir/${base}_compressed_h265_cfr40_w640.log' 2>&1"
   echo $command
 done
