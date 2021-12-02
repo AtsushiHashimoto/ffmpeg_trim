@@ -7,7 +7,11 @@ the input file example:
 ---
 start front.MOV +00:00:00.03
 end side.MOV -00:00:00.01
+1 -1
 ---
+1st column: trim the first frames (length 0.03sec) from front.MOV
+2nd column: trim the last frames (length 0.01sec) from side.MOV
+3rd column: rotate front.MOV 90 deg. (in clockwise direction) and side.MOV 180 deg. (1:90d 2:-90d -1:180d)
 EOS
   exit 1
 fi
@@ -63,7 +67,7 @@ It must be 'start' or 'end'.
 EOF
 }
 
-while read command mov_file offset
+head -n 2 $trim_file | while read command mov_file offset
 do
   base=$(basename -- "$mov_file")
   base="${base%.*}"
@@ -93,19 +97,38 @@ It must be 'front' or 'side'
 EOF
     exit 1
   fi
-done < $trim_file
+done
+
+# read rotation
+rotation_commands=($(tail -n 1 $trim_file))
+
+function create_rot_option(){
+  command=$1
+  if [ $command -eq -1 ]; then
+    echo "-vf 'hflip,vflip'"
+  elif [ $command -eq 0 ]; then
+    #echo "-c copy " # only when not re-encode.
+    echo ""
+  else
+    echo "-vf 'transpose=$command'"
+  fi
+}
+front_rot_option=$(create_rot_option ${rotation_commands[0]})
+side_rot_option=$(create_rot_option ${rotation_commands[1]})
 
 for base in "front" "side"; do
   duration=$(ffprobe -i "$dir/${base}.${MOV_EXT}" -show_entries format=duration -v quiet -of csv="p=0")
   if [ $base == "front" ];then
     f_ss=$(time2sec $front_start)
     b_ss=$(time2sec $front_end)
+    rot_option=$front_rot_option
   else
     f_ss=$(time2sec $side_start)
     b_ss=$(time2sec $side_end)
+    rot_option=$side_rot_option
   fi
   t=$(echo "scale=6; $duration - $f_ss - $b_ss" | bc)
-  command="ffmpeg -y -ss $f_ss -i '$dir/${base}.${MOV_EXT}' -t $t -c copy '$dir/${base}_trimed.${MOV_EXT}' > '$dir/${base}_trimed.log' 2>&1"
+  command="ffmpeg -y -ss $f_ss -i '$dir/${base}.${MOV_EXT}' $rot_option -t $t '$dir/${base}_trimed.${MOV_EXT}' > '$dir/${base}_trimed.log' 2>&1"
   echo $command
 
   # H265, speed=0.228x, size 1/6
