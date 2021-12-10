@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+cd `dirname $0`
 
 if [ $# -lt 1 ]; then
   cat << EOS
@@ -100,17 +101,17 @@ EOF
 done
 
 # read rotation
-rotation_commands=($(tail -n 1 $trim_file))
+rotation_commands=($(head -n 3 $trim_file | tail -n 1)) # get the 3rd row
 
 function create_rot_option(){
   command=$1
   if [ $command -eq -1 ]; then
-    echo "-vf 'hflip,vflip'"
+    echo "hflip,vflip,scale=640:-2"
   elif [ $command -eq 0 ]; then
     #echo "-c copy " # only when not re-encode.
-    echo ""
+    echo "scale=640:-2"
   else
-    echo "-vf 'transpose=$command'"
+    echo "transpose=$command,scale=640:-2"
   fi
 }
 front_rot_option=$(create_rot_option ${rotation_commands[0]})
@@ -128,30 +129,8 @@ for base in "front" "side"; do
     rot_option=$side_rot_option
   fi
   t=$(echo "scale=6; $duration - $f_ss - $b_ss" | bc)
-  command="ffmpeg -y -ss $f_ss -i '$dir/${base}.${MOV_EXT}' $rot_option -t $t '$dir/${base}_trimed.${MOV_EXT}' > '$dir/${base}_trimed.log' 2>&1"
+  command="ffmpeg -y -ss $f_ss -i '$dir/${base}.${MOV_EXT}' -vf '$rot_option' -t $t -vcodec libx265 '$dir/${base}_compressed_h265_w640.mp4' > '$dir/${base}_compressed_h265_w640.log' 2>&1"
   echo $command
+  ffmpeg -y -ss $f_ss -i "$dir/${base}.${MOV_EXT}" -vf "$rot_option" -t $t -vcodec libx265 "$dir/${base}_compressed_h265_w640.mp4" > "$dir/${base}_compressed_h265_w640.log" 2>&1
 
-  # H265, speed=0.228x, size 1/6
-  command="ffmpeg -y -i '$dir/${base}_trimed.${MOV_EXT}' -vcodec libx265 '$dir/${base}_compressed_h265.mp4' > '$dir/${base}_compressed_h265.log' 2>&1"
-  echo $command
-
-  # H265, scale 640x???, speed=0.78x, size 1/18
-  command="ffmpeg -y -i '$dir/${base}_trimed.${MOV_EXT}' -vcodec libx265 -vf scale=640:-2 '$dir/${base}_compressed_h265_w640.mp4' > '$dir/${base}_compressed_h265_w640.log' 2>&1"
-  echo $command
-
-  # H265, crf 34, speed=0.42x,size 1/20
-  command="ffmpeg -y -i '$dir/${base}_trimed.${MOV_EXT}' -vcodec libx265 -crf 34 '$dir/${base}_compressed_h265_cfr34.mp4' > '$dir/${base}_compressed_h265_cfr34.log' 2>&1"
-  echo $command
-
-  # H265, crf 34, scale 640x???, speed=1.15x, size 1/36
-  command="ffmpeg -y -i '$dir/${base}_trimed.${MOV_EXT}' -vcodec libx265 -crf 34 -vf scale=640:-2 '$dir/${base}_compressed_h265_crf34_w640.mp4' > '$dir/${base}_compressed_h265_cfr34_w640.log' 2>&1"
-  echo $command
-
-  # H265, crf 40, speed=0.48x, 1/36
-  command="ffmpeg -y -i '$dir/${base}_trimed.${MOV_EXT}' -vcodec libx265 -crf 40 '$dir/${base}_compressed_h265_cfr40.mp4' > '$dir/${base}_compressed_h265_cfr40.log' 2>&1"
-  echo $command
-
-  # H265, crf 40, scale 640x???, speed=1.14x, size 1/50
-  command="ffmpeg -y -i '$dir/${base}_trimed.${MOV_EXT}' -vcodec libx265 -crf 40 -vf scale=640:-2 '$dir/${base}_compressed_h265_crf40_w640.mp4' > '$dir/${base}_compressed_h265_cfr40_w640.log' 2>&1"
-  echo $command
 done
